@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+   <head lang="en">
+      <meta charset="UTF-8" />
+      <title>APP STORE</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+      <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+      <link rel="stylesheet" href="/resources/demos/style.css">
+      <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+      <script>
+         var deleteItemID = "";
+         var jqxhr = $
+         		.get("/appstore/apps", function() {
+         			console.log("success - app load");
+         		})
+         		.done(
+         				function(data) {
+         					var html = '';
+         					for (var i = 0; i < data.length; i++) {
+         						html += '<div class="panel panel-default panel-body well"><div class="col-sm-2"><img width="45px" src="/appstore/templates/images/' + data[i].type + '.png"/></div>';
+         						html += '<div class="col-sm-2">' + data[i].date
+         								+ '</div>';
+         						html += '<div class="col-sm-4">'
+         								+ data[i].description + '</div>';
+         						html += '<div class="col-sm-4"><div class="btn-group"><a href="itms-services://?action=download-manifest&url=/appstore/download/'
+         								+ data[i].id
+         								+ '.plist" type="button" class="btn btn-success btn-primary" data-toggle="tooltip" item-id="'
+         								+ data[i].id
+         								+ '" title="Download this app!" >Download</a><button type="button" class="btn btn-danger btn-primary hidden admin-links delete-app" data-toggle="tooltip" item-id="'
+         								+ data[i].id
+         								+ '" title="Delete this app?">Delete</button></div></div></div>';
+         					}
+         					$('#all-apps').html(html);
+         					$('[data-toggle="tooltip"]').tooltip();
+         					loginSuccess();
+         					$(".delete-app").on('click', function(e) {
+         						deleteItemID = $(this).attr('item-id');
+         						e.preventDefault();
+         						$("#dialog").dialog("open");
+         
+         					});
+         				});
+         $(function() {
+         	$("#dialog").dialog({
+         		autoOpen : false,
+         		modal : true,
+         		buttons : {
+         			"Confirm" : function() {
+         				$.ajax({
+         					url : '/appstore/apps/' + deleteItemID,
+         					type : 'DELETE',
+         					contentType : "application/json; charset=utf-8",
+         					crossDomain : true,
+         					dataType : "json",
+         					success : function(data, status, jqXHR) {
+         						location.reload();
+         					},
+         					error : function(jqXHR, status) {
+         						location.reload();
+         					}
+         				});
+         			},
+         			"Cancel" : function() {
+         				$(this).dialog("close");
+         				deleteItemID = "";
+         			}
+         		}
+         	});
+         });
+         
+         function loginSuccess() {
+         	var loggedin = $.cookie("loggedin");
+         	if (loggedin == 'loggedin') {
+         		$('.admin-links').removeClass('hidden');
+         		$('.admin-login').addClass('hidden');
+         		$('.admin-logout').removeClass('hidden');
+         		$('.upload-place').removeClass('hidden');
+         	} else {
+         		loggedOutView();
+         	}
+         }
+         function loggedOutView() {
+         	$.removeCookie("loggedin");
+         }
+         $(document)
+         		.ready(
+         				function() {
+         					// Load dropdown
+         					$
+         							.get("/appstore/masterdata", function() {
+         								console.log("success - master-data load");
+         							})
+         							.done(
+         									function(data) {
+         										var html = '<select class="form-control" id="appType">';
+         										for (var i = 0; i < data.length; i++) {
+         											html += '<option value="' + data[i].appType + '">'
+         													+ data[i].appTypeDisplayName
+         													+ '</option>';
+         										}
+         										html += '</select>';
+         										$('#master-data').html(html);
+         									});
+         					$("#buildDate").datepicker();
+         				});
+      </script>
+   </head>
+   <body>
+      <div class="container">
+         <h1>Appstore</h1>
+         <p>Internal App store that can be used to download iOS apps.</p>
+         <a href="#" class="btn btn-info admin-login" data-toggle="modal"
+            data-target="#myModal">Admin Login</a> <a href="#"
+            class="btn btn-info admin-logout hidden" id="admin-logout">Log
+         Out</a>
+         <!-- Login Modal Ends -->
+         <div id="myModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+               <div class="modal-content">
+                  <div class="modal-header">
+                     <button type="button" class="close" data-dismiss="modal">&times;</button>
+                     <h4 class="modal-title">Login As Admin</h4>
+                  </div>
+                  <div class="modal-body">
+                     <form>
+                        <div class="form-group">
+                           <label for="username">User Name</label> <input type="text"
+                              class="form-control" id="username" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                           <label for="password">Password:</label> <input type="password"
+                              class="form-control" id="password" autocomplete="off">
+                        </div>
+                        <div class="alert alert-danger hidden" id="error-message"
+                           role="alert">Please enter valid credentials.</div>
+                        <button type="submit" class="btn btn-primary" id="login-submit">Submit</button>
+                        <button type="button" class="btn btn-default close-login"
+                           data-dismiss="modal">Close</button>
+                     </form>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <!-- Login Modal Ends -->
+         <br /> <br />
+         <!-- Ability to upload new Starts -->
+         <div class="upload-place hidden panel panel-default">
+            <div class="panel-heading" data-toggle="collapse"
+               href="#hide-section">
+               <b>Upload new App</b>
+            </div>
+            <div class="panel-body collapse in" id="hide-section">
+               <form id="upload-file-form">
+                  <div class="form-group">
+                     <label for="upload-file-input">Select File</label> <input
+                        type="file" class="form-control" id="upload-file-input"
+                        name="uploadfile" accept=".ipa" />
+                  </div>
+                  <div class="form-group">
+                     <label for="description">Short Description</label>
+                     <textarea class="form-control" id="description"></textarea>
+                  </div>
+                  <div class="form-group">
+                     <label for="buildDate">Build Date</label> <input type="text"
+                        class="form-control" id="buildDate" autocomplete="off"/>
+                  </div>
+                  <div class="form-group">
+                     <label for="master-data">App Type</label>
+                     <div id="master-data"></div>
+                  </div>
+                  <div class="alert alert-danger hidden" id="error-message-upload"
+                     role="alert">Please enter all required information.</div>
+                  <button type="submit" class="btn btn-primary" id="upload-submit">Upload</button>
+               </form>
+            </div>
+         </div>
+         <!-- Ability to upload new Ends -->
+         <div id="all-apps"></div>
+      </div>
+      <div id="dialog" title="Confirmation Required">Are you sure to
+         delete the app?
+      </div>
+      <script>
+         $("#upload-submit").click(function() {
+         	var description = $("#description").val();
+         	var buildDate = $("#buildDate").val();
+         	var appType = $("#appType").val();
+         	if (description == '' || buildDate == '') {
+         		$('#error-message-upload').removeClass("hidden");
+         		return false;
+         	} else {
+         		$('#error-message-upload').addClass("hidden");
+         		var formData = new FormData($("#upload-file-form")[0]);
+         		formData.append("date", buildDate);
+         		formData.append("description", description);
+         		formData.append("type", appType);
+         		$.ajax({
+         			url : "/appstore/uploadFile",
+         			type : "POST",
+         			data : formData,
+         			enctype : 'multipart/form-data',
+         			processData : false,
+         			contentType : false,
+         			cache : false,
+         			success : function() {
+         				location.reload();
+         			},
+         			error : function() {
+         				location.reload();
+         			}
+         		});
+         	}
+         });
+         
+         $("#login-submit").click(function() {
+         	var userName = $("#username").val();
+         	var password = $("#password").val();
+         	if (userName == '' || password == '') {
+         		$('#error-message').removeClass("hidden");
+         	} else {
+         		$('#error-message').addClass("hidden");
+         		$.ajax({
+         			type : "POST",
+         			url : "/appstore/login",
+         			data : JSON.stringify({
+         				username : userName,
+         				password : password
+         			}),
+         			contentType : "application/json; charset=utf-8",
+         			crossDomain : true,
+         			dataType : "json",
+         			success : function(data, status, jqXHR) {
+         				console.log(data);
+         				if (!data) {
+         					$('#error-message').removeClass("hidden");
+         				} else {
+         					$('#error-message').addClass("hidden");
+         					$('#myModal').addClass("hidden");
+         					var date = new Date();
+         					date.setTime(date.getTime() + (20 * 60 * 1000));
+         					$.cookie('loggedin', 'loggedin', {
+         						expires : date
+         					}); // expires after 20 minute
+         					location.reload();
+         				}
+         			},
+         			error : function(jqXHR, status) {
+         				console.log(jqXHR);
+         				$('#error-message').removeClass("hidden");
+         			}
+         		});
+         	}
+         });
+         $("#admin-logout").click(function(evt) {
+         	loggedOutView();
+         	location.reload();
+         });
+      </script>
+   </body>
+</html>
